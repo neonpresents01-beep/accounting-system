@@ -1,4 +1,4 @@
-name: Build Windows EXE - UTF8 Fix
+name: Build Windows EXE - Safe
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -6,7 +6,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Setup Python with UTF-8
+    - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
@@ -15,27 +15,40 @@ jobs:
       run: |
         pip install pyinstaller pyqt5 pandas scikit-learn numpy pyjwt
         
-    - name: Create fixed Python file
+    - name: Create wrapper without console output
       run: |
-        # ایجاد یک فایل پایتون اصلاح شده موقت
-        $fixedContent = @"
+        $wrapperContent = @"
 import sys
-import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+import os
+os.environ['PYTHONIOENCODING'] = 'utf-8'
 
-# ایمپورت فایل اصلی
-from account import *
-if __name__ == "__main__":
-    window = CompleteAccountingSystem()
+# غیرفعال کردن stdout موقتاً
+class DisableOutput:
+    def write(self, text):
+        pass
+    def flush(self):
+        pass
+
+sys.stdout = DisableOutput()
+sys.stderr = DisableOutput()
+
+try:
+    from account import CompleteAccountingSystem
+    if __name__ == "__main__":
+        app = QApplication(sys.argv)
+        window = CompleteAccountingSystem()
+        sys.exit(app.exec_())
+except Exception as e:
+    # فقط خطاهای critical را نشان بده
+    sys.stderr = sys.__stderr__
+    print(f"Critical error: {e}")
+    sys.exit(1)
 "@
-        $fixedContent | Out-File -FilePath "fixed_account.py" -Encoding utf8
+        $wrapperContent | Out-File -FilePath "wrapper.py" -Encoding utf8
         
-    - name: Build with fixed file
+    - name: Build with wrapper
       run: |
-        chcp 65001
-        set PYTHONIOENCODING=utf-8
-        pyinstaller --onefile --windowed --name "AccountingSystem" fixed_account.py
+        pyinstaller --onefile --windowed --name "AccountingSystem" wrapper.py
         
     - name: Upload EXE
       uses: actions/upload-artifact@v4
