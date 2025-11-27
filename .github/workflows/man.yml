@@ -1,0 +1,16 @@
+name: Build Windows EXE
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - run: pip install pyinstaller pyqt5 pandas scikit-learn numpy pyjwt
+    - run: pyinstaller --onefile --windowed --name "AccountingSystem" account.py
+    - uses: actions/upload-artifact@v4
+      with:
+        name: AccountingSystem
+        path: dist/AccountingSystem.exe
