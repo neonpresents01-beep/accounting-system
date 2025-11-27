@@ -1,0 +1,59 @@
+name: Build Accounting System
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller pyqt5 pandas scikit-learn numpy pyjwt
+        
+    - name: Build Windows EXE
+      run: |
+        pyinstaller --onefile --windowed --name "AccountingSystem" --add-data "accounting_system.db;." account.py
+        
+    - name: Upload Windows EXE
+      uses: actions/upload-artifact@v3
+      with:
+        name: AccountingSystem-Windows
+        path: dist/AccountingSystem.exe
+        retention-days: 30
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        pip install pyinstaller pyqt5 pandas scikit-learn numpy pyjwt
+        
+    - name: Build Linux Binary
+      run: |
+        pyinstaller --onefile --name "accounting-system" --add-data "accounting_system.db:." account.py
+        
+    - name: Upload Linux Binary
+      uses: actions/upload-artifact@v3
+      with:
+        name: AccountingSystem-Linux
+        path: dist/accounting-system
