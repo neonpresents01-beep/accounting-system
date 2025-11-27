@@ -1,0 +1,47 @@
+# ایجاد فایل gitignore
+cat > .gitignore << 'EOF'
+# Python
+pycache/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+*.tmp
+*.temp
+
+# Browser
+firefox/
+chrome/
+edge/
+
+# Build files
+dist/
+build/
+*.spec
+
+# Database backups
+*.db.backup
+*.sqlite3.backup
+
+# Logs
+*.log
+logs/
+EOF
