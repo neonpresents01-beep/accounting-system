@@ -1,4 +1,4 @@
-name: Build Windows EXE - Debug
+name: Build Windows EXE - UTF8 Fix
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -6,49 +6,39 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Verify account.py exists
-      run: |
-        echo "Checking files in root directory:"
-        dir
-        echo "File content of account.py (first 10 lines):"
-        type account.py | head -n 10 || echo "Cannot read file"
-    
-    - uses: actions/setup-python@v4
+    - name: Setup Python with UTF-8
+      uses: actions/setup-python@v4
       with:
         python-version: '3.9'
         
-    - name: Install dependencies with verbose
+    - name: Install dependencies
       run: |
-        pip install --verbose pyinstaller
-        pip install pyqt5 pandas scikit-learn numpy pyjwt
+        pip install pyinstaller pyqt5 pandas scikit-learn numpy pyjwt
         
-    - name: Test Python script
+    - name: Create fixed Python file
       run: |
-        echo "Testing if account.py runs:"
-        python account.py || echo "Script had errors but continuing..."
+        # ایجاد یک فایل پایتون اصلاح شده موقت
+        $fixedContent = @"
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+# ایمپورت فایل اصلی
+from account import *
+if __name__ == "__main__":
+    window = CompleteAccountingSystem()
+"@
+        $fixedContent | Out-File -FilePath "fixed_account.py" -Encoding utf8
         
-    - name: Build with detailed output
+    - name: Build with fixed file
       run: |
-        echo "Starting PyInstaller build..."
-        pyinstaller --onefile --windowed --name "AccountingSystem" --log-level DEBUG account.py
-        echo "Build completed. Checking dist folder:"
-        dir dist || echo "dist folder not found"
-        dir build || echo "build folder not found"
+        chcp 65001
+        set PYTHONIOENCODING=utf-8
+        pyinstaller --onefile --windowed --name "AccountingSystem" fixed_account.py
         
-    - name: Check build results
-      run: |
-        echo "=== Build Folder ==="
-        dir build /s || echo "No build folder"
-        echo "=== Dist Folder ==="
-        dir dist /s || echo "No dist folder"
-        
-    - name: Upload Artifact
-      if: always()
+    - name: Upload EXE
       uses: actions/upload-artifact@v4
       with:
-        name: Build-Debug-Results
-        path: |
-          dist/
-          build/
-          *.log
-        retention-days: 3
+        name: AccountingSystem-Windows
+        path: dist/AccountingSystem.exe
